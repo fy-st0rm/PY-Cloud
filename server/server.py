@@ -11,10 +11,19 @@ import threading
 # 5. share?	(To share files with other user)
 
 
+# Protocols codes
+LOGIN	= 0
+SINGUP	= 1
+PUSH	= 2
+PULL	= 3
+SHARE	= 4
+
+
 class Server:
 	def __init__(self):
 		self.ip = "127.0.0.1"
 		self.port = 5050
+		self.buffer = 1024
 
 		self.running = True
 
@@ -23,8 +32,20 @@ class Server:
 
 	def __handle_client(self, conn):
 		# Handle server protocols
-		print(conn)
+		protocol = int(conn.recv(self.buffer).decode())
+		
+		if protocol == LOGIN:
+			print("Do login!")
+		elif protocol == SINGUP:
+			print("Do singup!")
+		elif protocol == PUSH:
+			print("Do push!")
+		elif protocol == PULL:
+			print("Do pull!")
+		elif protocol == SHARE:
+			print("Do share!")
 
+		conn.close()
 
 	def run(self):
 		self.server.listen()
@@ -37,3 +58,6 @@ class Server:
 			new_thread.start()
 
 
+if __name__ == "__main__":
+	server = Server()
+	server.run()
