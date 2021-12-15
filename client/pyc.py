@@ -5,12 +5,14 @@ import time
 
 
 # Protocols codes
+ERROR = -1
+SUCESS=  1
 protocols = {
-	"login"	: "0",
-	"signup": "1",
-	"push"	: "2",
-	"pull"	: "3",
-	"share"	: "4"
+	"login"	: "100",
+	"signup": "101",
+	"push"	: "200",
+	"pull"	: "201",
+	"share"	: "202"
 }	
 	
 
@@ -31,6 +33,60 @@ class PYC:
 		except:
 			print("Failed to connect to server! Check your internect connection or try later.")
 
+	#------------------Account handling section--------------------#
+
+	#For checking Usr Name
+	def __check_username(self, username):
+		length = len(username)
+		if length <= 3:
+			print("Error: Minimum number of character of a username is 3")
+			exit()
+		elif length >= 15:
+			print("Error: Maximum number of chacter of a username is 15")
+			exit()
+
+	#For checking Usr Pswd
+	def __check_password(self, password):
+		if len(password) <= 3:
+			print("Error: Minimum number of character of a password is 3")
+			exit()
+	
+	def __signup(self, protocol_code):
+		#Asking for user data
+		self.username = input("Username: ")
+		self.password = getpass.getpass()
+
+		#Checking username and passwrd
+		self.__check_username(self.username)
+		self.__check_password(self.password)
+
+		#User Data
+		self.__user_data = f"{self.username}{self.seperator}{self.password}"
+
+		#Sends Protocol Code
+		self.client.send(protocol_code.encode())
+
+		#Waits For Protocol Code to reach
+		time.sleep(0.1)
+
+		#Sends the userdata
+		self.client.send(self.__user_data.encode())
+
+		#Receives Responce
+		self.__resp = int(self.client.recv(self.buffer).decode())
+
+		#Shows status of the account creation
+		if self.__resp == ERROR:
+			#Faliure
+			print("The account already exsists!")
+			exit()
+		elif self.__resp == SUCESS:
+			#Creates file for auto sign up
+			with open("usrdata","w") as self.__file:
+				self.__file.write(f"{self.username}{self.seperator}{self.password}")
+			#Sucess!
+			print("The account has been registered!")
+	
 	def run(self):
 		self.__connect()
 		
@@ -41,74 +97,18 @@ class PYC:
 		
 		# Protocol handling
 		protocol_code = protocols[self.argv[1]]
-		if protocol_code == "0":
-			self.client.send(protocol_code.encode())
-		elif protocol_code == "1":
-
-			#Asking for user data
-			self.username = input("Username: ")
-			self.password = getpass.getpass()
-
-			#Checking username and passwrd
-			self.checkUsername(self.username)
-			self.checkPassword(self.password)
-
-			#User Data
-			self.__userData = f"{self.username}{self.seperator}{self.password}"
-
-			#Sends Protocol Code
+		if protocol_code == "100":
 			self.client.send(protocol_code.encode())
 
-			#Waits For Protocol Code to reach
-			time.sleep(0.1)
+		elif protocol_code == "101":
+			self.__signup(protocol_code)
 
-			#Sends the userdata
-			self.client.send(self.__userData.encode())
-
-			#Receives Responce
-			self.__resp = int(self.client.recv(self.buffer).decode())
-
-			#Shows status of the account creation
-			if self.__resp == -5:
-				#Faliure
-				print("The account already exsists!")
-				exit()
-			elif self.__resp == 5:
-				#Creates file for auto sign up
-				with open("usrdata","w") as self.__file:
-					self.__file.write(f"{self.username}{self.seperator}{self.password}")
-				#Sucess!
-				print("The account has been registered!")
-
-		elif protocol_code == "2":
+		elif protocol_code == "200":
 			self.client.send(protocol_code.encode())
-		elif protocol_code == "3":
+		elif protocol_code == "201":
 			self.client.send(protocol_code.encode())
-		elif protocol_code == "4":
+		elif protocol_code == "202":
 			self.client.send(protocol_code.encode())
-
-	#For checking Usr Name
-	def checkUsername(self,__username):
-		self.__username = __username
-		self.__usernamelen = len(self.__username)
-		if self.__usernamelen <= 3:
-			print("Error: Minimum number of character of a username is 3")
-			exit()
-		elif self.__usernamelen >= 15:
-			print("Error: Maximum number of chacter of a username is 15")
-			exit()
-		else:
-			pass
-
-	#For checking Usr Pswd
-	def checkPassword(self,__password):
-		self.__password = __password
-		self.__passwordlen = len(self.__password)
-		if self.__passwordlen <= 3:
-			print("Error: Minimum number of character of a password is 3")
-			exit()
-		else:
-			pass
 
 if __name__ == "__main__":
 	if len(sys.argv) <= 1:

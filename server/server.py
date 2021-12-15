@@ -13,11 +13,14 @@ import os
 
 
 # Protocols codes
-LOGIN	= 0
-SIGNUP	= 1
-PUSH	= 2
-PULL	= 3
-SHARE	= 4
+ERROR	= -1
+SUCESS	=  1
+
+LOGIN	= 100
+SIGNUP	= 101
+PUSH	= 200
+PULL	= 201
+SHARE	= 202
 
 
 class Server:
@@ -31,9 +34,8 @@ class Server:
 		self.seperator = "[se]"
 
 		self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.server.bind((self.ip, self.port))
-
-		
 
 	def __handle_client(self, conn):
 		# Handle server protocols
@@ -44,28 +46,26 @@ class Server:
 		elif protocol == SIGNUP:
 
 			#re-receives the signup data
-			self.__userData = conn.recv(self.buffer).decode()
-			self.__userData = self.__userData.split(self.seperator)
+			self.__user_data = conn.recv(self.buffer).decode()
+			self.__user_data = self.__user_data.split(self.seperator)
 
-			self.__username = self.__userData[0]
-			self.__password = self.__userData[1]
+			self.__username = self.__user_data[0]
+			self.__password = self.__user_data[1]
 
 			#Checks and writes data in user data json file
-			with open("userdata/userdata.json", "r") as dataFile: 
-				self.__file = json.load(dataFile)
+			with open("userdata/userdata.json", "r") as data_file: 
+				self.__file = json.load(data_file)
 
 			if self.__username in self.__file:
-				conn.send("-5".encode())
+				conn.send(f"{ERROR}".encode())
 			else:
-				self.__userDetail = {"password":self.__password}
-				self.__file.update({self.__username:self.__userDetail})
-				with open("userdata/userdata.json", "w") as dataFile:
-					json.dump(self.__file, dataFile)
+				self.__user_detail = {"password":self.__password}
+				self.__file.update({self.__username:self.__user_detail})
+				with open("userdata/userdata.json", "w") as data_file:
+					json.dump(self.__file, data_file)
 
 				os.mkdir(f"userfiles/{self.__username}")
-				conn.send("5".encode())
-
-
+				conn.send(f"{SUCESS}".encode())
 
 		elif protocol == PUSH:
 			print("Do push!")
