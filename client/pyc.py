@@ -1,4 +1,6 @@
 import socket
+import json
+import os
 import sys
 import getpass
 import time
@@ -21,10 +23,11 @@ class PYC:
 		# Server info
 		self.ip = "127.0.0.5"
 		self.port = 5050
-		self.buffer = 1024
+		self.buffer = 61440
+		self.packet_size = 46080
 
 		self.argv = argv
-		self.seperator = "[se]"
+		self.seperator = "<sep>"
 
 	def __connect(self):
 		try:
@@ -32,6 +35,10 @@ class PYC:
 			self.client.connect((self.ip, self.port))
 		except:
 			print("Failed to connect to server! Check your internect connection or try later.")
+
+	def __send(self, data):
+		time.sleep(0.1)
+		self.client.send(data.encode())
 
 	#------------------Account handling section--------------------#
 
@@ -93,6 +100,7 @@ class PYC:
 		self.argv[1] = self.argv[1].lower()
 		if self.argv[1] not in protocols:
 			print("Unknown protocls!")
+			self.client.send(str(ERROR).encode())
 			exit()
 		
 		# Protocol handling
@@ -104,7 +112,35 @@ class PYC:
 			self.__signup(protocol_code)
 
 		elif protocol_code == "200":
-			self.client.send(protocol_code.encode())
+			self.__send(protocol_code)
+				
+			file = self.argv[2]
+			with open(file, "r") as r:
+				file_data = r.read()
+			
+			padding = self.packet_size - (len(file_data) % self.packet_size)
+			for padd in range(padding):
+				file_data += "0"
+			packet_size = int(len(file_data) / self.packet_size)
+
+			file_info = f"{file}{self.seperator}{padding}{self.seperator}{packet_size}"
+			self.__send(file_info)
+
+			packets = {}
+			packet_no = 0
+			for i in range(0, len(file_data), self.packet_size):
+				chunk = file_data[i:i+self.packet_size]
+				packets[packet_no] = chunk
+				#temp_packet = f"{packet_no}{self.seperator}{chunk}"
+				print("Sending:", sys.getsizeof(chunk), "bytes..")
+				packet_no += 1
+
+				self.__send(chunk)
+
+			self.__send(str(SUCESS))
+			print("Total size:", sys.getsizeof(file_data), "bytes")
+			print("Total packets:", len(packets), "bytes")
+
 		elif protocol_code == "201":
 			self.client.send(protocol_code.encode())
 		elif protocol_code == "202":
