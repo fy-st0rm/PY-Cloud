@@ -70,11 +70,13 @@ class Server:
 
 		elif protocol == PUSH:
 			file_info = conn.recv(self.buffer).decode().split(self.seperator)
-			print("Push request:", file_info)
 			
 			file_name = file_info[0]
 			padding = int(file_info[1])
 			packet_size = int(file_info[2])
+			print("Push request!")
+			print(f"file_name: {file_name}\nPadding: {padding}\nPacket amt: {packet_size}")
+
 			
 			packets = {}
 			file_data = ""
