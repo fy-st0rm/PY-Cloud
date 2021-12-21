@@ -74,38 +74,24 @@ class Server:
 			file_name = file_info[0]
 			padding = int(file_info[1])
 			packet_size = int(file_info[2])
+
 			print("Push request!")
 			print(f"file_name: {file_name}\nPadding: {padding}\nPacket amt: {packet_size}")
-
 			
 			packets = {}
-			file_data = ""
+			file_data = b""
 			packet_no = 0
 			while True:
-				chunk = conn.recv(self.buffer).decode()
-				if chunk != str(SUCESS):
-					"""
-					print(chunk)
-					chunk = chunk.split(self.seperator)
-					print(chunk)
-
-					no = chunk[0]
-					data = chunk[1]
-					packets[no] = data
-					"""
+				chunk = conn.recv(self.buffer)
+				if chunk != str(SUCESS).encode():
 					file_data += chunk
 				else:
 					break
-			"""
-			file_data = ""
-			for i in packets:
-				file_data += packets[i]
-			"""
-
-			file_data = file_data.split("0"*padding)[0]
+			
+			file_data = file_data.strip(b" "*padding)
 
 			print("File saved!")
-			with open(file_name, "w") as w:
+			with open(file_name, "wb") as w:
 				w.write(file_data)
 
 		elif protocol == PULL:
