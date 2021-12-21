@@ -115,12 +115,12 @@ class PYC:
 			self.__send(protocol_code)
 				
 			file = self.argv[2]
-			with open(file, "r") as r:
+			print("Reading the file")
+			with open(file, "rb") as r:
 				file_data = r.read()
 			
 			padding = self.packet_size - (len(file_data) % self.packet_size)
-			for padd in range(padding):
-				file_data += "0"
+			file_data += b" " * padding
 			packet_size = int(len(file_data) / self.packet_size)
 
 			file_info = f"{file}{self.seperator}{padding}{self.seperator}{packet_size}"
@@ -131,13 +131,14 @@ class PYC:
 			for i in range(0, len(file_data), self.packet_size):
 				chunk = file_data[i:i+self.packet_size]
 				packets[packet_no] = chunk
-				#temp_packet = f"{packet_no}{self.seperator}{chunk}"
 				print("Sending:", sys.getsizeof(chunk), "bytes..")
 				packet_no += 1
 
-				self.__send(chunk)
+				self.client.send(chunk)
+				time.sleep(0.1)
 
 			self.__send(str(SUCESS))
+
 			print("Total size:", sys.getsizeof(file_data), "bytes")
 			print("Total packets:", len(packets), "bytes")
 
