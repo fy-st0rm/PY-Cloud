@@ -113,6 +113,15 @@ class Server:
 
 	#Runs a scan for usernames in the usefiles folder
 	def folder_check(self):
+		if "userdata" not in os.listdir("."):
+			os.mkdir("userdata")
+			with open("userdata/userdata.json","+w") as data_file:
+				data_file.write("{}")
+				data_file.close()
+
+		elif "userfiles" not in os.listdir("."):
+			os.mkdir("userfiles")
+
 		with open("userdata/userdata.json", "r") as data_file: 
 			self.__file = json.load(data_file)
 		folders = os.listdir("./userfiles")
@@ -123,6 +132,9 @@ class Server:
 				pass
 			else:
 				os.mkdir(f"userfiles/{usernames[i]}") #creates a folder 
+
+		
+
 
 
 if __name__ == "__main__":
