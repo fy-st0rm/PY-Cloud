@@ -111,7 +111,21 @@ class Server:
 			new_thread = threading.Thread(target=self.__handle_client, args=(conn, ))
 			new_thread.start()
 
+	#Runs a scan for usernames in the usefiles folder
+	def folder_check(self):
+		with open("userdata/userdata.json", "r") as data_file: 
+			self.__file = json.load(data_file)
+		folders = os.listdir("./userfiles")
+		usernames = list(self.__file.keys())
+		
+		for i in range(len(usernames)): #For loop action baby!
+			if usernames[i] in folders:
+				pass
+			else:
+				os.mkdir(f"userfiles/{usernames[i]}") #creates a folder 
+
 
 if __name__ == "__main__":
 	server = Server()
+	server.folder_check()
 	server.run()
