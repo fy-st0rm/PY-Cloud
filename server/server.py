@@ -98,7 +98,42 @@ class Server:
 				w.write(file_data)
 
 		elif protocol == PULL:
-			print("Do pull!")
+			print("Pull request!")
+			user = conn.recv(self.buffer).decode()
+			time.sleep(0.1)
+			file_name = conn.recv(self.buffer).decode()
+			file_path = f"userfiles/{user}/{file_name}"
+
+			print(user, file_name)
+			if not os.path.exists(file_path):
+				conn.send(str(ERROR).encode())
+				conn.close()
+				return
+
+			time.sleep(0.1)
+			conn.send(str(SUCESS).encode())
+
+			print("File exists!")
+			with open(file_path, "rb") as file:
+				file_data = file.read()
+
+			padding = self.packet_size - (len(file_data) % self.packet_size)
+			file_data += b" " * padding
+			packet_size = int(len(file_data) / self.packet_size)
+
+			file_info = f"{file_name}{self.seperator}{padding}{self.seperator}{packet_size}"
+
+			time.sleep(0.1)
+			conn.send(file_info.encode())
+
+			for i in range(0, len(file_data), self.packet_size):
+				chunk = file_data[i:i+self.packet_size]
+				conn.send(chunk)
+				time.sleep(0.05)
+
+			conn.send(str(SUCESS).encode())
+			print("Sent sucessfully!")
+
 		elif protocol == SHARE:
 			print("Do share!")
 

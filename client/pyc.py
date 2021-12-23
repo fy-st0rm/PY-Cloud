@@ -94,12 +94,13 @@ class PYC:
 
 	#-----------Protocol defination----------------#
 	def __push_protocol(self, protocol_code):
-		self.__send(protocol_code)
-
 		# Checking for the userdata file
 		if not os.path.isfile("usrdata"):
 			print("Before pushing you need to create or login to your account!")
+			self.__send(str(ERROR))
 			quit()
+
+		self.__send(protocol_code)
 
 		# Reading the username and password
 		with open("usrdata", "r") as r:
@@ -134,7 +135,53 @@ class PYC:
 
 		print("Total size:", sys.getsizeof(file_data), "bytes")
 		print("Total packets:", len(packets), "bytes")
-	
+
+	def __pull_protocol(self, protocol_code):
+		# Checking for the userdata file
+		if not os.path.isfile("usrdata"):
+			print("Before pushing you need to create or login to your account!")
+			quit()
+		self.__send(protocol_code)
+		
+		# Reading the username and password
+		with open("usrdata", "r") as r:
+			user_data = r.read()
+		username, password = user_data.split(self.seperator)
+		self.__send(username)
+		
+		file = self.argv[2]
+		self.__send(file)
+
+		approval = int(self.client.recv(self.buffer).decode())
+		if approval == ERROR:
+			print(f"{file} not found!")
+			quit()
+
+		file_info = self.client.recv(self.buffer).decode().split(self.seperator)
+		print(file_info)
+		file_name = file_info[0]
+		padding = int(file_info[1])
+		packet_size = int(file_info[2])
+
+		print("Receiving file!")
+		print(f"file_name: {file_name}\npadding: {padding}\npacket_size: {packet_size}")
+
+		file_data = b""
+		while True:
+			chunk = self.client.recv(self.buffer)
+			if chunk != str(SUCESS).encode():
+				file_data += chunk
+				print(f"Receiving: {sys.getsizeof(chunk)} bytes")
+			else:
+				break
+		
+		file_data = file_data.strip(b" "*padding)
+		print("Saving file...")
+		with open(file_name, "wb") as w:
+			w.write(file_data)
+		
+		print("Pull transaction completed!")
+
 	def run(self):
 		self.__connect()
 		
@@ -156,7 +203,8 @@ class PYC:
 			self.__push_protocol(protocol_code)
 
 		elif protocol_code == "201":
-			self.client.send(protocol_code.encode())
+			self.__pull_protocol(protocol_code)
+
 		elif protocol_code == "202":
 			self.client.send(protocol_code.encode())
 
