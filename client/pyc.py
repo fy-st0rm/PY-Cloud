@@ -92,6 +92,44 @@ class PYC:
 			#Sucess!
 			print("The account has been registered!")
 
+	def __login(self, protocol_code):
+
+		#asking for user data
+		self.username = input("Username: ")
+		self.password = getpass.getpass()
+
+		#user data
+		self.__user_data = f"{self.username}{self.seperator}{self.password}"
+
+		#Sends protocol code
+		self.client.send(protocol_code.encode())
+
+		#Waiting for the protocol code to reach
+		time.sleep(0.1)
+
+		#Sends the user data
+		self.client.send(self.__user_data.encode())
+
+		#Receives Responce
+		self.__resp = int(self.client.recv(self.buffer).decode())
+
+		#Shows status of the account login
+		if self.__resp == ERROR:
+			#Faliure
+			print("Password or Username does not match!")
+			quit()
+
+		elif self.__resp == SUCESS:
+			#Creates file for auto sign up
+			with open("usrdata","w") as self.__file:
+				self.__file.write(f"{self.username}{self.seperator}{self.password}")
+			#Sucess!
+			print("The account has been logged in!")
+
+
+
+
+
 	#-----------Protocol defination----------------#
 	def __push_protocol(self, protocol_code):
 		# Checking for the userdata file
@@ -194,7 +232,7 @@ class PYC:
 		# Protocol handling
 		protocol_code = protocols[self.argv[1]]
 		if protocol_code == "100":
-			self.client.send(protocol_code.encode())
+			self.__login(protocol_code)
 
 		elif protocol_code == "101":
 			self.__signup(protocol_code)

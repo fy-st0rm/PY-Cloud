@@ -43,7 +43,22 @@ class Server:
 		protocol = int(conn.recv(self.buffer).decode())
 		
 		if protocol == LOGIN:
-			print("Do login!")
+			self.__login_data = conn.recv(self.buffer).decode()
+			self.__login_data = self.__login_data.split(self.seperator)
+
+			self.__username = self.__login_data[0]
+			self.__password = self.__login_data[1]
+
+			with open("userdata/userdata.json", "r") as data_file: 
+				self.__file = json.load(data_file)
+
+			if self.__username in self.__file:
+				if self.__password == self.__file[self.__username]["password"]:
+					conn.send(f"{SUCESS}".encode())
+				else:
+					conn.send(f"{ERROR}".encode())
+			else:
+				conn.send(f"{ERROR}".encode())
 		elif protocol == SIGNUP:
 
 			#re-receives the signup data
