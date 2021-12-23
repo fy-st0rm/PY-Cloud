@@ -69,6 +69,9 @@ class Server:
 				conn.send(f"{SUCESS}".encode())
 
 		elif protocol == PUSH:
+			user = conn.recv(self.buffer).decode()
+			time.sleep(0.1)
+
 			file_info = conn.recv(self.buffer).decode().split(self.seperator)
 			
 			file_name = file_info[0]
@@ -91,7 +94,7 @@ class Server:
 			file_data = file_data.strip(b" "*padding)
 
 			print("File saved!")
-			with open(file_name, "wb") as w:
+			with open(f"userfiles/{user}/{file_name}", "wb") as w:
 				w.write(file_data)
 
 		elif protocol == PULL:
@@ -119,7 +122,7 @@ class Server:
 				data_file.write("{}")
 				data_file.close()
 
-		elif "userfiles" not in os.listdir("."):
+		if "userfiles" not in os.listdir("."):
 			os.mkdir("userfiles")
 
 		with open("userdata/userdata.json", "r") as data_file: 

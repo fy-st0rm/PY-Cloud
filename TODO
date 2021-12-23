@@ -1,8 +1,8 @@
 
 // st0rm
 [] a huffman compression system
-[] file transfer
-[] server api requests ( push, pull )
+[x] file transfer
+[x] server api requests ( push, pull )
 
 
 // FuNk

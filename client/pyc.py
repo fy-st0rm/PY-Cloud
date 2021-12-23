@@ -4,8 +4,6 @@ import os
 import sys
 import getpass
 import time
-
-
 # Protocols codes
 ERROR = -1
 SUCESS=  1
@@ -47,16 +45,16 @@ class PYC:
 		length = len(username)
 		if length <= 3:
 			print("Error: Minimum number of character of a username is 3")
-			exit()
+			quit()
 		elif length >= 15:
 			print("Error: Maximum number of chacter of a username is 15")
-			exit()
+			quit()
 
 	#For checking Usr Pswd
 	def __check_password(self, password):
 		if len(password) <= 3:
 			print("Error: Minimum number of character of a password is 3")
-			exit()
+			quit()
 	
 	def __signup(self, protocol_code):
 		#Asking for user data
@@ -86,13 +84,56 @@ class PYC:
 		if self.__resp == ERROR:
 			#Faliure
 			print("The account already exsists!")
-			exit()
+			quit()
 		elif self.__resp == SUCESS:
 			#Creates file for auto sign up
 			with open("usrdata","w") as self.__file:
 				self.__file.write(f"{self.username}{self.seperator}{self.password}")
 			#Sucess!
 			print("The account has been registered!")
+
+	#-----------Protocol defination----------------#
+	def __push_protocol(self, protocol_code):
+		self.__send(protocol_code)
+
+		# Checking for the userdata file
+		if not os.path.isfile("usrdata"):
+			print("Before pushing you need to create or login to your account!")
+			quit()
+
+		# Reading the username and password
+		with open("usrdata", "r") as r:
+			user_data = r.read()
+		username, password = user_data.split(self.seperator)
+		self.__send(username)
+
+		file = self.argv[2]
+		print("Reading the file")
+		with open(file, "rb") as r:
+			file_data = r.read()
+		
+		padding = self.packet_size - (len(file_data) % self.packet_size)
+		file_data += b" " * padding
+		packet_size = int(len(file_data) / self.packet_size)
+
+		file_info = f"{file}{self.seperator}{padding}{self.seperator}{packet_size}"
+		self.__send(file_info)
+
+		packets = {}
+		packet_no = 0
+		for i in range(0, len(file_data), self.packet_size):
+			chunk = file_data[i:i+self.packet_size]
+			packets[packet_no] = chunk
+			print("Sending:", sys.getsizeof(chunk), "bytes..")
+			packet_no += 1
+
+			self.client.send(chunk)
+			time.sleep(0.05)
+
+		self.__send(str(SUCESS))
+
+		print("Total size:", sys.getsizeof(file_data), "bytes")
+		print("Total packets:", len(packets), "bytes")
 	
 	def run(self):
 		self.__connect()
@@ -101,7 +142,7 @@ class PYC:
 		if self.argv[1] not in protocols:
 			print("Unknown protocls!")
 			self.client.send(str(ERROR).encode())
-			exit()
+			quit()
 		
 		# Protocol handling
 		protocol_code = protocols[self.argv[1]]
@@ -112,35 +153,7 @@ class PYC:
 			self.__signup(protocol_code)
 
 		elif protocol_code == "200":
-			self.__send(protocol_code)
-				
-			file = self.argv[2]
-			print("Reading the file")
-			with open(file, "rb") as r:
-				file_data = r.read()
-			
-			padding = self.packet_size - (len(file_data) % self.packet_size)
-			file_data += b" " * padding
-			packet_size = int(len(file_data) / self.packet_size)
-
-			file_info = f"{file}{self.seperator}{padding}{self.seperator}{packet_size}"
-			self.__send(file_info)
-
-			packets = {}
-			packet_no = 0
-			for i in range(0, len(file_data), self.packet_size):
-				chunk = file_data[i:i+self.packet_size]
-				packets[packet_no] = chunk
-				print("Sending:", sys.getsizeof(chunk), "bytes..")
-				packet_no += 1
-
-				self.client.send(chunk)
-				time.sleep(0.1)
-
-			self.__send(str(SUCESS))
-
-			print("Total size:", sys.getsizeof(file_data), "bytes")
-			print("Total packets:", len(packets), "bytes")
+			self.__push_protocol(protocol_code)
 
 		elif protocol_code == "201":
 			self.client.send(protocol_code.encode())
@@ -150,7 +163,7 @@ class PYC:
 if __name__ == "__main__":
 	if len(sys.argv) <= 1:
 		print("Usage: pyc [protocol]")
-		exit()
+		quit()
 
 	pyc = PYC(sys.argv)
 	pyc.run()
