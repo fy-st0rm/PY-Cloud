@@ -25,8 +25,9 @@ SHARE	= 202
 
 class Server:
 	def __init__(self):
-		self.ip = "127.0.0.5"
+		self.ip = "127.0.0.1"
 		self.port = 5050
+
 		self.buffer = 61440
 		self.packet_size = 46080
 
@@ -84,11 +85,14 @@ class Server:
 				conn.send(f"{SUCESS}".encode())
 
 		elif protocol == PUSH:
+			# Getting the username
 			user = conn.recv(self.buffer).decode()
 			time.sleep(0.1)
 
+			# Getting file info
 			file_info = conn.recv(self.buffer).decode().split(self.seperator)
 			
+			# Extracting file data from the file info
 			file_name = file_info[0]
 			padding = int(file_info[1])
 			packet_size = int(file_info[2])
@@ -96,9 +100,8 @@ class Server:
 			print("Push request!")
 			print(f"file_name: {file_name}\nPadding: {padding}\nPacket amt: {packet_size}")
 			
-			packets = {}
+			# Getting the chunks and combining it to one
 			file_data = b""
-			packet_no = 0
 			while True:
 				chunk = conn.recv(self.buffer)
 				if chunk != str(SUCESS).encode():
@@ -106,46 +109,57 @@ class Server:
 				else:
 					break
 			
+			# Deleting the extra padding
 			file_data = file_data.strip(b" "*padding)
-
+			
+			# Saving the file in the required place
 			print("File saved!")
 			with open(f"userfiles/{user}/{file_name}", "wb") as w:
 				w.write(file_data)
 
 		elif protocol == PULL:
 			print("Pull request!")
+			
+			# Getting the username
 			user = conn.recv(self.buffer).decode()
 			time.sleep(0.1)
+
+			# Getting the file name
 			file_name = conn.recv(self.buffer).decode()
 			file_path = f"userfiles/{user}/{file_name}"
-
+			
+			# Checking if the file exists or not
 			print(user, file_name)
 			if not os.path.exists(file_path):
 				conn.send(str(ERROR).encode())
 				conn.close()
 				return
-
+			
+			# Sending the approval
 			time.sleep(0.1)
 			conn.send(str(SUCESS).encode())
-
+			
+			# Reading the file
 			print("File exists!")
 			with open(file_path, "rb") as file:
 				file_data = file.read()
-
+			
+			# Calculating and adding the padding
 			padding = self.packet_size - (len(file_data) % self.packet_size)
 			file_data += b" " * padding
 			packet_size = int(len(file_data) / self.packet_size)
 
 			file_info = f"{file_name}{self.seperator}{padding}{self.seperator}{packet_size}"
 
-			time.sleep(0.1)
 			conn.send(file_info.encode())
+			time.sleep(0.1)
 
 			for i in range(0, len(file_data), self.packet_size):
 				chunk = file_data[i:i+self.packet_size]
 				conn.send(chunk)
-				time.sleep(0.05)
+				time.sleep(0.1)
 
+			time.sleep(1)
 			conn.send(str(SUCESS).encode())
 			print("Sent sucessfully!")
 

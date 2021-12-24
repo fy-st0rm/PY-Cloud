@@ -19,8 +19,11 @@ protocols = {
 class PYC:
 	def __init__(self, argv):
 		# Server info
-		self.ip = "127.0.0.5"
-		self.port = 5050
+		#self.ip = "127.0.0.1"
+		#self.port = 5050
+		
+		self.ip = "0.tcp.ngrok.io"
+		self.port = 16353
 		self.buffer = 61440
 		self.packet_size = 46080
 
@@ -33,10 +36,12 @@ class PYC:
 			self.client.connect((self.ip, self.port))
 		except:
 			print("Failed to connect to server! Check your internect connection or try later.")
+			quit()
 
 	def __send(self, data):
-		time.sleep(0.1)
 		self.client.send(data.encode())
+		time.sleep(0.5)
+
 
 	#------------------Account handling section--------------------#
 
@@ -54,6 +59,7 @@ class PYC:
 	def __check_password(self, password):
 		if len(password) <= 3:
 			print("Error: Minimum number of character of a password is 3")
+			self.__send(str(ERROR))
 			quit()
 	
 	def __signup(self, protocol_code):
@@ -69,13 +75,10 @@ class PYC:
 		self.__user_data = f"{self.username}{self.seperator}{self.password}"
 
 		#Sends Protocol Code
-		self.client.send(protocol_code.encode())
-
-		#Waits For Protocol Code to reach
-		time.sleep(0.1)
+		self.__send(protocol_code)
 
 		#Sends the userdata
-		self.client.send(self.__user_data.encode())
+		self.__send(self.__user_data)
 
 		#Receives Responce
 		self.__resp = int(self.client.recv(self.buffer).decode())
@@ -102,13 +105,10 @@ class PYC:
 		self.__user_data = f"{self.username}{self.seperator}{self.password}"
 
 		#Sends protocol code
-		self.client.send(protocol_code.encode())
-
-		#Waiting for the protocol code to reach
-		time.sleep(0.1)
+		self.__send(protocol_code)
 
 		#Sends the user data
-		self.client.send(self.__user_data.encode())
+		self.__send(self.__user_data)
 
 		#Receives Responce
 		self.__resp = int(self.client.recv(self.buffer).decode())
@@ -127,9 +127,6 @@ class PYC:
 			print("The account has been logged in!")
 
 
-
-
-
 	#-----------Protocol defination----------------#
 	def __push_protocol(self, protocol_code):
 		# Checking for the userdata file
@@ -137,7 +134,8 @@ class PYC:
 			print("Before pushing you need to create or login to your account!")
 			self.__send(str(ERROR))
 			quit()
-
+		
+		# Sending the protocol
 		self.__send(protocol_code)
 
 		# Reading the username and password
@@ -146,38 +144,41 @@ class PYC:
 		username, password = user_data.split(self.seperator)
 		self.__send(username)
 
+		# Reading the file
 		file = self.argv[2]
 		print("Reading the file")
 		with open(file, "rb") as r:
 			file_data = r.read()
 		
+		# Calculating padding and packets size
 		padding = self.packet_size - (len(file_data) % self.packet_size)
 		file_data += b" " * padding
 		packet_size = int(len(file_data) / self.packet_size)
-
+		
+		# Sending the file information to the server
 		file_info = f"{file}{self.seperator}{padding}{self.seperator}{packet_size}"
 		self.__send(file_info)
+		time.sleep(0.5)
 
-		packets = {}
-		packet_no = 0
+		# Sending actual packets by using chunking method		
 		for i in range(0, len(file_data), self.packet_size):
 			chunk = file_data[i:i+self.packet_size]
-			packets[packet_no] = chunk
 			print("Sending:", sys.getsizeof(chunk), "bytes..")
-			packet_no += 1
 
 			self.client.send(chunk)
-			time.sleep(0.05)
-
+			time.sleep(0.1)
+		
+		# Telling the server that file tranfer is done
+		time.sleep(1)
 		self.__send(str(SUCESS))
 
 		print("Total size:", sys.getsizeof(file_data), "bytes")
-		print("Total packets:", len(packets), "bytes")
+		print("Total packets:", packet_size)
 
 	def __pull_protocol(self, protocol_code):
 		# Checking for the userdata file
 		if not os.path.isfile("usrdata"):
-			print("Before pushing you need to create or login to your account!")
+			print("Before pulling you need to create or login to your account!")
 			quit()
 		self.__send(protocol_code)
 		
@@ -187,23 +188,28 @@ class PYC:
 		username, password = user_data.split(self.seperator)
 		self.__send(username)
 		
+		# Telling the server the file name
 		file = self.argv[2]
 		self.__send(file)
-
+		
+		# Getting the approval from the server
 		approval = int(self.client.recv(self.buffer).decode())
 		if approval == ERROR:
 			print(f"{file} not found!")
 			quit()
-
+		
+		# Getting the file info
 		file_info = self.client.recv(self.buffer).decode().split(self.seperator)
-		print(file_info)
+		
+		# Extracting the file data from the file info
 		file_name = file_info[0]
 		padding = int(file_info[1])
 		packet_size = int(file_info[2])
 
 		print("Receiving file!")
 		print(f"file_name: {file_name}\npadding: {padding}\npacket_size: {packet_size}")
-
+		
+		# Receiving the packets and adding it together
 		file_data = b""
 		while True:
 			chunk = self.client.recv(self.buffer)
@@ -213,6 +219,7 @@ class PYC:
 			else:
 				break
 		
+		# Removing the padding
 		file_data = file_data.strip(b" "*padding)
 		print("Saving file...")
 		with open(file_name, "wb") as w:
