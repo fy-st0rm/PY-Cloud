@@ -19,11 +19,11 @@ protocols = {
 class PYC:
 	def __init__(self, argv):
 		# Server info
-		#self.ip = "127.0.0.1"
-		#self.port = 5050
+		self.ip = "127.0.0.1"
+		self.port = 5050
 		
-		self.ip = "0.tcp.ngrok.io"
-		self.port = 16353
+		#self.ip = "0.tcp.ngrok.io"
+		#self.port = 16353
 		self.buffer = 61440
 		self.packet_size = 46080
 
@@ -189,7 +189,7 @@ class PYC:
 		self.__send(username)
 		
 		# Telling the server the file name
-		file = self.argv[2]
+		file = self.argv[2].split("/")[-1]
 		self.__send(file)
 		
 		# Getting the approval from the server
@@ -200,7 +200,7 @@ class PYC:
 		
 		# Getting the file info
 		file_info = self.client.recv(self.buffer).decode().split(self.seperator)
-		
+
 		# Extracting the file data from the file info
 		file_name = file_info[0]
 		padding = int(file_info[1])
@@ -222,7 +222,7 @@ class PYC:
 		# Removing the padding
 		file_data = file_data.strip(b" "*padding)
 		print("Saving file...")
-		with open(file_name, "wb") as w:
+		with open(file_name.split("/")[-1], "wb") as w:
 			w.write(file_data)
 		
 		print("Pull transaction completed!")

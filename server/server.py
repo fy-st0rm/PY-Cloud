@@ -136,7 +136,7 @@ class Server:
 				return
 			
 			# Sending the approval
-			time.sleep(0.1)
+			time.sleep(0.5)
 			conn.send(str(SUCESS).encode())
 			
 			# Reading the file
@@ -152,7 +152,7 @@ class Server:
 			file_info = f"{file_name}{self.seperator}{padding}{self.seperator}{packet_size}"
 
 			conn.send(file_info.encode())
-			time.sleep(0.1)
+			time.sleep(0.5)
 
 			for i in range(0, len(file_data), self.packet_size):
 				chunk = file_data[i:i+self.packet_size]
